@@ -31,11 +31,13 @@ func calculateAPR(creditScores: [CreditScore]) -> Double {
 }
 
 func getAPR(userId: Int) async throws -> Double {
+    
+    /*
     // testing the cancelation of the task
     if userId % 2 == 0 {
         throw NetworkError.invalidId
     }
-    
+    */
     guard let equifaxUrl = Constants.Urls.equifax(userId: userId),
           let experianUrl = Constants.Urls.experian(userId: userId) else {
         throw NetworkError.badUrl
@@ -56,6 +58,31 @@ func getAPR(userId: Int) async throws -> Double {
     return calculateAPR(creditScores: [equifaxCreditScore, experianCreditScore])
 }
 
+let ids = [1,2,3,4,5]
+var invalidIds: [Int] = []
+
+func getAPRForAllUsers(ids: [Int]) async throws -> [Int: Double] {
+    var userAPR: [Int: Double] = [:]
+    
+    try await withThrowingTaskGroup(of: (Int, Double).self, body: { group in
+        for id in ids {
+            group.addTask {
+                return (id, try await getAPR(userId: id))
+            }
+        }
+        // async sequence 1 by 1
+        for try await (id, apr) in group {
+            userAPR[id] = apr
+        }
+    })
+    return userAPR
+}
+
+Task.init {
+    let userAPRs = try await getAPRForAllUsers(ids: ids)
+    print(userAPRs)
+}
+
 /*
 // perform a request and give APR
 Task.init {
@@ -64,6 +91,7 @@ Task.init {
 }
 */
 
+/*
 let ids = [1,2,3,4,5]
 var invalidIds: [Int] = []
 
@@ -82,3 +110,6 @@ Task.init {
     }
     print(invalidIds)
 }
+*/
+
+
