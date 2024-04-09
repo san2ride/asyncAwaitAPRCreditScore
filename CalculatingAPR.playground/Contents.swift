@@ -21,14 +21,38 @@ struct Constants {
     }
 }
 
+func calculateAPR(creditScores: [CreditScore]) -> Double {
+    let sum = creditScores.reduce(0) { next, credit in
+        return next + credit.score
+    }
+    // calculate the APR based on the scores
+    return Double((sum/creditScores.count) / 100)
+}
+
 func getAPR(userId: Int) async throws -> Double {
     guard let equifaxUrl = Constants.Urls.equifax(userId: userId),
           let experianUrl = Constants.Urls.experian(userId: userId) else {
         throw NetworkError.badUrl
     }
+    // two concurrent tasks
+    async let (equifaxData, _) = URLSession.shared.data(from: equifaxUrl)
+    async let (eperianData, _) = URLSession.shared.data(from: experianUrl)
     
-    let (equifaxData, _) = try await URLSession.shared.data(from: equifaxUrl)
-    let (eperianData, _) = try await URLSession.shared.data(from: experianUrl)
+    // custom code
+    let equifaxCreditScore = try? JSONDecoder().decode(CreditScore.self, from: try await equifaxData)
+    let experianCreditScore = try? JSONDecoder().decode(CreditScore.self, from: try await eperianData)
     
-    return 0.0
+    guard let equifaxCreditScore = equifaxCreditScore,
+          let experianCreditScore = experianCreditScore else {
+        throw NetworkError.decodingError
+    }
+    
+    return calculateAPR(creditScores: [equifaxCreditScore, experianCreditScore])
 }
+
+// perform a request and give APR
+Task.init {
+    let apr = try await getAPR(userId: 1)
+    print(apr)
+}
+
