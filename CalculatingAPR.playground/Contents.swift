@@ -50,9 +50,22 @@ func getAPR(userId: Int) async throws -> Double {
     return calculateAPR(creditScores: [equifaxCreditScore, experianCreditScore])
 }
 
+/*
 // perform a request and give APR
 Task.init {
     let apr = try await getAPR(userId: 1)
     print(apr)
 }
+*/
 
+
+/*
+let ids = [1,2,3,4,5]
+
+Task.init {
+    for id in ids {
+        let apr = try await getAPR(userId: id)
+        print(apr)
+    }
+}
+*/
